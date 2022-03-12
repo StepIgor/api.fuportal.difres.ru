@@ -136,3 +136,94 @@ app.post('/checkSessionExisting', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getMoodleName', jsonParser, (req, res) => {
+    if (req.body.session == null){
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+        SELECT name, surname, patron FROM users
+        WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then((user) => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            res.send(JSON.stringify({
+                status: 'done',
+                name: user.name,
+                surname: user.surname,
+                patron: user.patron
+            }))
+            return
+        })
+    })
+})
+
+
+app.post('/logout', jsonParser, (req, res) => {
+    if (req.body.session == null){
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.run(`
+            DELETE FROM sessions WHERE session = ?
+        `, req.body.session).then((result) => {
+            res.send(JSON.stringify({
+                status: 'done'
+            }))
+            return
+        })
+    })
+})
+
+app.post('/getUserInfo', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT u.name "name", u.surname "surname", u.patron "patron", u.login "login", f.name "fac"
+            FROM users u LEFT JOIN faculties f ON u.fac_id = f.id
+            WHERE u.id = (SELECT user_id FROM sessions WHERE session = ?) 
+        `, req.body.session).then((user) => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+            res.send(JSON.stringify({
+                status: 'done',
+                name: user.name,
+                surname: user.surname,
+                patron: user.patron,
+                fac: user.fac,
+                login: user.login
+            }))
+            return
+        })
+    })
+})
