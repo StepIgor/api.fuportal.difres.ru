@@ -227,3 +227,62 @@ app.post('/getUserInfo', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getAllEmployees', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            if (user.fac_id == null) {
+                //rector
+                db.all(`
+                    SELECT e.id "id", e.name "name", e.surname "surname", e.patron "patron", e.birthdate "birthdate", d.name "dname",  p.name "pname"
+                    FROM employees e
+                    JOIN departments d ON e.dep_id = d.id
+                    JOIN positions p ON e.pos_id = p.id
+                `).then(employees => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        employees: employees
+                    }))
+                    return
+                })
+            } else {
+                //dean
+                db.all(`
+                    SELECT e.id "id", e.name "name", e.surname "surname", e.patron "patron", e.birthdate "birthdate", d.name "dname",  p.name "pname"
+                    FROM employees e
+                    JOIN departments d ON e.dep_id = d.id
+                    JOIN positions p ON e.pos_id = p.id
+                    WHERE e.fac_id = ?
+                `, user.fac_id).then(employees => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        employees: employees
+                    }))
+                    return
+                })
+            }
+        })
+    })
+})
