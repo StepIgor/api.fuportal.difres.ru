@@ -286,3 +286,68 @@ app.post('/getAllEmployees', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getAllStudents', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            if (user.fac_id == null) {
+                //rector
+                db.all(`
+                    SELECT s.id "id", s.name "name", s.surname "surname", s.patron "patron", s.sex "sex", s.birthdate "birthdate", s.status "status", s.stud_year "stud_year",
+                    s.fac_id "fac_id", s.prof_id "prof_id", s.dir_id "dir_id", s.group_id "group_id", s.stud_form "stud_form", s.funding "funding", s.region "region",
+                    s.citizenship "citizenship", s.enroll_year "enroll_year", s.email "email", f.name "fac_name", d.name "dir_name", p.name "prof_name"
+                    FROM students s
+                    JOIN faculties f ON s.fac_id = f.id
+                    JOIN directions d ON s.dir_id = d.id
+                    JOIN profiles p ON s.prof_id = p.id
+                `).then(students => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        students: students
+                    }))
+                    return
+                })
+            } else {
+                //dean
+                db.all(`
+                    SELECT s.id "id", s.name "name", s.surname "surname", s.patron "patron", s.sex "sex", s.birthdate "birthdate", s.status "status", s.stud_year "stud_year",
+                    s.fac_id "fac_id", s.prof_id "prof_id", s.dir_id "dir_id", s.group_id "group_id", s.stud_form "stud_form", s.funding "funding", s.region "region",
+                    s.citizenship "citizenship", s.enroll_year "enroll_year", s.email "email", f.name "fac_name", d.name "dir_name", p.name "prof_name"
+                    FROM students s
+                    JOIN faculties f ON s.fac_id = f.id
+                    JOIN directions d ON s.dir_id = d.id
+                    JOIN profiles p ON s.prof_id = p.id
+                    WHERE s.fac_id = ?
+                `, user.fac_id).then(employees => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        students: students
+                    }))
+                    return
+                })
+            }
+        })
+    })
+})
