@@ -339,7 +339,7 @@ app.post('/getAllStudents', jsonParser, (req, res) => {
                     JOIN directions d ON s.dir_id = d.id
                     JOIN profiles p ON s.prof_id = p.id
                     WHERE s.fac_id = ?
-                `, user.fac_id).then(employees => {
+                `, user.fac_id).then(students => {
                     res.send(JSON.stringify({
                         status: 'done',
                         details: 'data is sent',
