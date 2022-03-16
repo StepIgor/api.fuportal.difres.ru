@@ -351,3 +351,67 @@ app.post('/getAllStudents', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getAllSubjects', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            if (user.fac_id == null) {
+                //rector
+                db.all(`
+                    SELECT * FROM subjects
+                `).then(subjects => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        subjects: subjects
+                    }))
+                    return
+                })
+            } else {
+                //dean
+                db.all(`
+                    SELECT * FROM subjects
+                    WHERE id IN (
+                        SELECT DISTINCT subject_id
+                        FROM marks
+                        WHERE emp_id IN (
+                            SELECT id FROM employees
+                            WHERE fac_id = ?
+                        )
+                        OR stud_id IN (
+                            SELECT id FROM students
+                            WHERE fac_id = ?
+                        )
+                    )
+                `, [user.fac_id, user.fac_id]).then(subjects => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        subjects: subjects
+                    }))
+                    return
+                })
+            }
+        })
+    })
+})
