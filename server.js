@@ -415,3 +415,63 @@ app.post('/getAllSubjects', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getEmployeeInfo', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'Не передан параметр сотрудника для отображения'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `,req.body.session).then(user => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'Не выполнен вход'
+                }))
+                return
+            }
+
+            db.get(`
+                SELECT e.*, d.name "dname", f.name "fname", p.name "pname", a.name "aname", ei.name "einame"
+                FROM employees e
+                JOIN departments d ON d.id = e.dep_id
+                JOIN faculties f ON f.id = e.fac_id 
+                JOIN positions p ON p.id = e.pos_id
+                JOIN academic_degrees a ON a.id = e.acad_degree_id
+                JOIN education_institutions ei ON ei.id = e.educ_inst_id 
+                WHERE e.id = ?
+            `, req.body.id).then(emp => {
+                if (emp.fac_id != user.fac_id && user.fac_id != null){
+                    res.send(JSON.stringify({
+                        status: 'error',
+                        details: 'Нет доступа к данным по этому сотруднику'
+                    }))
+                    return
+                }
+
+                res.send(JSON.stringify({
+                    status: 'done',
+                    details: 'was sent',
+                    emp: emp
+                }))
+                return
+            })
+        })
+    })
+})
