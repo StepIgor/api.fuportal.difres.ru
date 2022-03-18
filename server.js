@@ -475,3 +475,80 @@ app.post('/getEmployeeInfo', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null || req.body.startDate == null || req.body.endDate == null){
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no filter data provided'
+        }))
+        return
+    }
+
+    if (req.body.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null){
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'bad start date option'
+        }))
+        return
+    }
+
+    if (req.body.endDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null){
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'bad end date option'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `,req.body.session).then(user => {
+            if (user == undefined){
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'Не выполнен вход'
+                }))
+                return
+            }
+
+            db.get(`
+                SELECT fac_id FROM employees
+                WHERE id = ?
+            `, req.body.id).then((emp) => {
+                if (user.fac_id != null && user.fac_id != emp.fac_id){
+                    res.send(JSON.stringify({
+                        status: 'error',
+                        details: 'Нет доступа к данным по этому сотруднику'
+                    }))
+                    return
+                }
+
+                db.all(`
+                    SELECT mark, COUNT(mark)
+                    FROM marks
+                    WHERE emp_id = ? AND event_date >= ? AND event_date <= ?
+                    GROUP BY mark
+                `, [req.body.id, req.body.startDate + ' 23:59:59', req.body.endDate + ' 23:59:59']).then((marks) => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'Data was sent',
+                        marks: marks
+                    }))
+                    return
+                })
+            })
+        })
+    })
+})
