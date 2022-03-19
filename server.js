@@ -45,7 +45,7 @@ open(dbOptions).then((db) => {
 
 //API routes
 app.post('/login', jsonParser, (req, res) => {
-    if (req.body.login == null || req.body.password == null){
+    if (req.body.login == null || req.body.password == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'Не указан логин или пароль'
@@ -53,7 +53,7 @@ app.post('/login', jsonParser, (req, res) => {
         return
     }
 
-    if (req.body.login.replace(/ /g, '').length < 1 || req.body.login.length > 32){
+    if (req.body.login.replace(/ /g, '').length < 1 || req.body.login.length > 32) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'Неверный формат логина'
@@ -61,7 +61,7 @@ app.post('/login', jsonParser, (req, res) => {
         return
     }
 
-    if (req.body.password.replace(/ /g, '').length < 1 || req.body.password.length > 48){
+    if (req.body.password.replace(/ /g, '').length < 1 || req.body.password.length > 48) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'Неверный формат пароля'
@@ -71,7 +71,7 @@ app.post('/login', jsonParser, (req, res) => {
 
     open(dbOptions).then((db) => {
         db.get('SELECT * FROM users WHERE login = ?', req.body.login).then((user) => {
-            if (user == undefined){
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'Не найден указанный пользователь в системе'
@@ -91,7 +91,7 @@ app.post('/login', jsonParser, (req, res) => {
                 let new_session = crypto.randomBytes(32).toString('hex');
 
                 //generate unique session key
-                while (sessions.filter((s) => s.session == new_session) != 0){
+                while (sessions.filter((s) => s.session == new_session) != 0) {
                     new_session = crypto.randomBytes(32).toString('hex');
                 }
 
@@ -139,7 +139,7 @@ app.post('/checkSessionExisting', jsonParser, (req, res) => {
 
 
 app.post('/getMoodleName', jsonParser, (req, res) => {
-    if (req.body.session == null){
+    if (req.body.session == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'no session provided'
@@ -152,7 +152,7 @@ app.post('/getMoodleName', jsonParser, (req, res) => {
         SELECT name, surname, patron FROM users
         WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
         `, req.body.session).then((user) => {
-            if (user == undefined){
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'session is not alive'
@@ -173,7 +173,7 @@ app.post('/getMoodleName', jsonParser, (req, res) => {
 
 
 app.post('/logout', jsonParser, (req, res) => {
-    if (req.body.session == null){
+    if (req.body.session == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'no session provided'
@@ -243,7 +243,7 @@ app.post('/getAllEmployees', jsonParser, (req, res) => {
             SELECT * FROM users
             WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
         `, req.body.session).then(user => {
-            if (user == undefined){
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'session is not alive'
@@ -302,7 +302,7 @@ app.post('/getAllStudents', jsonParser, (req, res) => {
             SELECT * FROM users
             WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
         `, req.body.session).then(user => {
-            if (user == undefined){
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'session is not alive'
@@ -367,7 +367,7 @@ app.post('/getAllSubjects', jsonParser, (req, res) => {
             SELECT * FROM users
             WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
         `, req.body.session).then(user => {
-            if (user == undefined){
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'session is not alive'
@@ -438,8 +438,8 @@ app.post('/getEmployeeInfo', jsonParser, (req, res) => {
         db.get(`
             SELECT * FROM users
             WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
-        `,req.body.session).then(user => {
-            if (user == undefined){
+        `, req.body.session).then(user => {
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'Не выполнен вход'
@@ -457,7 +457,7 @@ app.post('/getEmployeeInfo', jsonParser, (req, res) => {
                 JOIN education_institutions ei ON ei.id = e.educ_inst_id 
                 WHERE e.id = ?
             `, req.body.id).then(emp => {
-                if (emp.fac_id != user.fac_id && user.fac_id != null){
+                if (emp.fac_id != user.fac_id && user.fac_id != null) {
                     res.send(JSON.stringify({
                         status: 'error',
                         details: 'Нет доступа к данным по этому сотруднику'
@@ -486,7 +486,7 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
         return
     }
 
-    if (req.body.id == null || req.body.startDate == null || req.body.endDate == null){
+    if (req.body.id == null || req.body.startDate == null || req.body.endDate == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'no filter data provided'
@@ -494,7 +494,7 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
         return
     }
 
-    if (req.body.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null){
+    if (req.body.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'bad start date option'
@@ -502,7 +502,7 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
         return
     }
 
-    if (req.body.endDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null){
+    if (req.body.endDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null) {
         res.send(JSON.stringify({
             status: 'error',
             details: 'bad end date option'
@@ -514,8 +514,8 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
         db.get(`
             SELECT * FROM users
             WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
-        `,req.body.session).then(user => {
-            if (user == undefined){
+        `, req.body.session).then(user => {
+            if (user == undefined) {
                 res.send(JSON.stringify({
                     status: 'error',
                     details: 'Не выполнен вход'
@@ -527,7 +527,7 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
                 SELECT fac_id FROM employees
                 WHERE id = ?
             `, req.body.id).then((emp) => {
-                if (user.fac_id != null && user.fac_id != emp.fac_id){
+                if (user.fac_id != null && user.fac_id != emp.fac_id) {
                     res.send(JSON.stringify({
                         status: 'error',
                         details: 'Нет доступа к данным по этому сотруднику'
@@ -547,6 +547,92 @@ app.post('/getEmpMarksGroupedChartData', jsonParser, (req, res) => {
                         marks: marks
                     }))
                     return
+                })
+            })
+        })
+    })
+})
+
+
+app.post('/getEmpMarksGroupedBySubjects', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null || req.body.startDate == null || req.body.endDate == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no filter data provided'
+        }))
+        return
+    }
+
+    if (req.body.startDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'bad start date option'
+        }))
+        return
+    }
+
+    if (req.body.endDate.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'bad end date option'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'Не выполнен вход'
+                }))
+                return
+            }
+
+            db.get(`
+                SELECT fac_id FROM employees
+                WHERE id = ?
+            `, req.body.id).then((emp) => {
+                if (user.fac_id != null && user.fac_id != emp.fac_id) {
+                    res.send(JSON.stringify({
+                        status: 'error',
+                        details: 'Нет доступа к данным по этому сотруднику'
+                    }))
+                    return
+                }
+
+                db.all(`
+                    SELECT s.name, COUNT(m.mark)
+                    FROM marks m JOIN subjects s ON m.subject_id = s.id
+                    WHERE m.emp_id = ? AND m.event_date >= ? AND m.event_date <= ?
+                    GROUP BY s.name
+                `, [req.body.id, req.body.startDate + ' 23:59:59', req.body.endDate + ' 23:59:59']).then((marks) => {
+
+                        db.all(`
+                        SELECT mark, COUNT(mark)
+                        FROM marks
+                        WHERE emp_id = ? AND event_date >= ? AND event_date <= ?
+                        GROUP BY mark
+                    `, [req.body.id, req.body.startDate + ' 23:59:59', req.body.endDate + ' 23:59:59']).then((marks_avg_and_sum) => {
+                            res.send(JSON.stringify({
+                                status: 'done',
+                                details: 'Data was sent',
+                                marks: marks,
+                                marks_avg_and_sum: marks_avg_and_sum
+                            }))
+                            return
+                        })
                 })
             })
         })
