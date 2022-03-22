@@ -716,3 +716,62 @@ app.post('/getGroupedSubjectMarksFilteredByEmployee', jsonParser, (req, res) => 
         })
     })
 })
+
+
+app.post('/getStudentInfo', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'Не передан параметр студента для отображения'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'Не выполнен вход'
+                }))
+                return
+            }
+
+            db.get(`
+                SELECT s.*, p.name "pname", f.name "fname", d.name "dname", g.name "gname"
+                FROM students s
+                JOIN profiles p ON p.id = s.prof_id
+                JOIN faculties f ON f.id = s.fac_id
+                JOIN directions d ON d.id = s.prof_id
+                JOIN groups g ON g.id = s.group_id
+                WHERE s.id = ?
+            `, req.body.id).then(stud => {
+                if (stud.fac_id != user.fac_id && user.fac_id != null) {
+                    res.send(JSON.stringify({
+                        status: 'error',
+                        details: 'Нет доступа к данным по этому студенту'
+                    }))
+                    return
+                }
+
+                res.send(JSON.stringify({
+                    status: 'done',
+                    details: 'was sent',
+                    stud: stud
+                }))
+                return
+            })
+        })
+    })
+})
