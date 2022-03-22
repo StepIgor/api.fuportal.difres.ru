@@ -775,3 +775,64 @@ app.post('/getStudentInfo', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getStudentMarksGroupedChartData', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no filter data provided'
+        }))
+        return
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'Не выполнен вход'
+                }))
+                return
+            }
+
+            db.get(`
+                SELECT fac_id FROM students
+                WHERE id = ?
+            `, req.body.id).then((stud) => {
+                if (user.fac_id != null && user.fac_id != stud.fac_id) {
+                    res.send(JSON.stringify({
+                        status: 'error',
+                        details: 'Нет доступа к данным по этому студенту'
+                    }))
+                    return
+                }
+
+                db.all(`
+                    SELECT mark, COUNT(mark)
+                    FROM marks
+                    WHERE stud_id = ? AND mark != 0
+                    GROUP BY mark
+                `, [req.body.id]).then((marks) => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'Data was sent',
+                        marks: marks
+                    }))
+                    return
+                })
+            })
+        })
+    })
+})
