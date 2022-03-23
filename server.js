@@ -619,20 +619,20 @@ app.post('/getEmpMarksGroupedBySubjects', jsonParser, (req, res) => {
                     GROUP BY s.name
                 `, [req.body.id, req.body.startDate + ' 23:59:59', req.body.endDate + ' 23:59:59']).then((marks) => {
 
-                        db.all(`
+                    db.all(`
                         SELECT mark, COUNT(mark)
                         FROM marks
                         WHERE emp_id = ? AND event_date >= ? AND event_date <= ?
                         GROUP BY mark
                     `, [req.body.id, req.body.startDate + ' 23:59:59', req.body.endDate + ' 23:59:59']).then((marks_avg_and_sum) => {
-                            res.send(JSON.stringify({
-                                status: 'done',
-                                details: 'Data was sent',
-                                marks: marks,
-                                marks_avg_and_sum: marks_avg_and_sum
-                            }))
-                            return
-                        })
+                        res.send(JSON.stringify({
+                            status: 'done',
+                            details: 'Data was sent',
+                            marks: marks,
+                            marks_avg_and_sum: marks_avg_and_sum
+                        }))
+                        return
+                    })
                 })
             })
         })
@@ -689,8 +689,8 @@ app.post('/getGroupedSubjectMarksFilteredByEmployee', jsonParser, (req, res) => 
             db.get(`
                 SELECT fac_id FROM employees
                 WHERE id = ?
-            `, req.body.id).then((emp) => {
-                if (user.fac_id != null && user.fac_id != emp.fac_id) {
+            `, req.body.empId).then((emp) => {
+                if (user.fac_id != null && user.fac_id != emp["fac_id"]) {
                     res.send(JSON.stringify({
                         status: 'error',
                         details: 'Нет доступа к данным по этому сотруднику'
@@ -894,6 +894,91 @@ app.post('/getStudentAvgMarksGroupedByHalfyears', jsonParser, (req, res) => {
                     return
                 })
             })
+        })
+    })
+})
+
+
+app.post('/getSubjectInfo', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no subject id defined'
+        }))
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            if (user.fac_id == null) {
+                //rector
+                db.get(`
+                    SELECT name FROM subjects
+                    WHERE id = ?
+                `, req.body.id).then(subject => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data was sent',
+                        name: subject.name
+                    }))
+                    return
+                })
+            } else {
+                //dean
+                db.all(`
+                    SELECT id FROM subjects
+                    WHERE id IN (
+                        SELECT DISTINCT subject_id
+                        FROM marks
+                        WHERE emp_id IN (
+                            SELECT id FROM employees
+                            WHERE fac_id = ?
+                        )
+                        OR stud_id IN (
+                            SELECT id FROM students
+                            WHERE fac_id = ?
+                        )
+                    )
+                `, [user.fac_id, user.fac_id]).then(subjects => {
+                    //check subject access
+                    if (subjects.map(subj => subj.id).indexOf(req.body.id) == -1) {
+                        res.send(JSON.stringify({
+                            status: 'error',
+                            details: 'subject info access error'
+                        }))
+                        return
+                    }
+                    db.get(`
+                    SELECT name FROM subjects
+                    WHERE id = ?
+                `, req.body.id).then(subject => {
+                        res.send(JSON.stringify({
+                            status: 'done',
+                            details: 'data was sent',
+                            name: subject.name
+                        }))
+                        return
+                    })
+                })
+            }
         })
     })
 })
