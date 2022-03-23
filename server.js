@@ -1088,3 +1088,96 @@ app.post('/getGroupedSubjectMarks', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/getSubjectAcademicPlans', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.id == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no filter options defined'
+        }))
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            if (user.fac_id == null) {
+                //rector
+                db.all(`
+                    SELECT DISTINCT strftime('%m.%Y', m.event_date) "my", m.control_form "cform", f.name, s.stud_form "sform", (CAST(strftime('%Y', m.event_date) AS INTEGER) - s.enroll_year) "ydiff"
+                    FROM marks m
+                    JOIN students s ON m.stud_id = s.id
+                    JOIN faculties f ON f.id = s.fac_id
+                    WHERE subject_id = ?
+                `, req.body.id).then(plans => {
+                    res.send(JSON.stringify({
+                        status: 'done',
+                        details: 'data is sent',
+                        plans: plans
+                    }))
+                    return
+                })
+            } else {
+                //dean
+                db.all(`
+                    SELECT id FROM subjects
+                    WHERE id IN (
+                        SELECT DISTINCT subject_id
+                        FROM marks
+                        WHERE emp_id IN (
+                            SELECT id FROM employees
+                            WHERE fac_id = ?
+                        )
+                        OR stud_id IN (
+                            SELECT id FROM students
+                            WHERE fac_id = ?
+                        )
+                    )
+                `, [user.fac_id, user.fac_id]).then(subjects => {
+                    //check subject access
+                    if (subjects.map(subj => subj.id).indexOf(req.body.id) == -1) {
+                        res.send(JSON.stringify({
+                            status: 'error',
+                            details: 'subject info access error'
+                        }))
+                        return
+                    }
+
+                    //query and sending
+                    db.all(`
+                    SELECT DISTINCT strftime('%m.%Y', m.event_date) "my", m.control_form "cform", f.name, s.stud_form "sform", (CAST(strftime('%Y', m.event_date) AS INTEGER) - s.enroll_year) "ydiff"
+                    FROM marks m
+                    JOIN students s ON m.stud_id = s.id
+                    JOIN faculties f ON f.id = s.fac_id
+                    WHERE subject_id = ?
+                `, req.body.id).then(plans => {
+                        res.send(JSON.stringify({
+                            status: 'done',
+                            details: 'data is sent',
+                            plans: plans
+                        }))
+                        return
+                    })
+                })
+            }
+        })
+    })
+})
