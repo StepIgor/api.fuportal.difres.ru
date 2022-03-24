@@ -1181,3 +1181,159 @@ app.post('/getSubjectAcademicPlans', jsonParser, (req, res) => {
         })
     })
 })
+
+
+app.post('/search', jsonParser, (req, res) => {
+    if (req.body.session == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no session provided'
+        }))
+        return
+    }
+
+    if (req.body.query == null) {
+        res.send(JSON.stringify({
+            status: 'error',
+            details: 'no user query text defined'
+        }))
+    }
+
+    open(dbOptions).then((db) => {
+        db.get(`
+            SELECT * FROM users
+            WHERE id = (SELECT user_id FROM sessions WHERE session = ?)
+        `, req.body.session).then(user => {
+            if (user == undefined) {
+                res.send(JSON.stringify({
+                    status: 'error',
+                    details: 'session is not alive'
+                }))
+                return
+            }
+
+            let searchResult = [];
+
+            //TABLE #1 - ACADEMIC DEGREES
+            db.all(`
+                SELECT name FROM academic_degrees
+            `).then((result) => {
+                result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                    searchResult.push({"name": r.name, "desc": "Научная степень"})
+                });
+
+                //TABLE #2 - DEPARTMENTS
+                db.all(`
+                    SELECT name FROM departments
+                `).then(result => {
+                    result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                        searchResult.push({"name": r.name, "desc": "Департамент"})
+                    });
+
+                    //TABLE #3 - DIRECTIONS
+                    db.all(`
+                        SELECT name FROM directions
+                    `).then(result => {
+                        result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                            searchResult.push({"name": r.name, "desc": "Направление"})
+                        });
+
+
+                        //TABLE #4 - EDICATION INSTITUTIONS
+                        db.all(`
+                            SELECT name FROM education_institutions
+                        `).then(result => {
+                            result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                searchResult.push({"name": r.name, "desc": "Образовательное учреждение"})
+                            });
+
+                            //TABLE #5 - EMPLOYEES
+                            db.all(`
+                                SELECT surname || ' ' || name || ' ' || patron "name"
+                                FROM employees
+                            `).then(result => {
+                                result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                    searchResult.push({"name": r.name, "desc": "Сотрудник"})
+                                });
+
+                                //TABLE #6 - FACULTIES
+                                db.all(`
+                                    SELECT name FROM faculties
+                                `).then(result => {
+                                    result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                        searchResult.push({"name": r.name, "desc": "Факультет"})
+                                    });
+
+                                    //TABLE #7 - GROUPS
+                                    db.all(`
+                                        SELECT name FROM groups
+                                    `).then(result => {
+                                        result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                            searchResult.push({"name": r.name, "desc": "Учебная группа"})
+                                        });
+
+                                        //TABLE #8 - POSITIONS
+                                        db.all(`
+                                            SELECT name FROM positions
+                                        `).then(result => {
+                                            result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                                searchResult.push({"name": r.name, "desc": "Должность"})
+                                            });
+
+                                            //TABLE #9 - PROFILES
+                                            db.all(`
+                                                SELECT name FROM profiles
+                                            `).then(result => {
+                                                result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                                    searchResult.push({"name": r.name, "desc": "Профиль обучения"})
+                                                });
+
+                                                //TABLE #10 - STUDENTS
+                                                db.all(`
+                                                    SELECT surname || ' ' || name || ' ' || patron "name"
+                                                    FROM students
+                                                `).then(result => {
+                                                    result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                                        searchResult.push({"name": r.name, "desc": "Обучающийся"})
+                                                    });
+
+                                                    //TABLE #11 - SUBJECTS
+                                                    db.all(`
+                                                        SELECT name FROM subjects
+                                                    `).then(result => {
+                                                        result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                                            searchResult.push({"name": r.name, "desc": "Дисциплина"})
+                                                        });
+
+                                                        //TABLE #12 - USERS
+                                                        db.all(`
+                                                            SELECT surname || ' ' || name || ' ' || patron "name"
+                                                            FROM users
+                                                        `).then(result => {
+                                                            result.filter(r => r.name.toLowerCase().indexOf(req.body.query.toLowerCase()) != -1).forEach((r) => {
+                                                                searchResult.push({
+                                                                    "name": r.name,
+                                                                    "desc": "Пользователь системы"
+                                                                })
+                                                            });
+
+                                                            res.send({
+                                                                status: 'done',
+                                                                results: searchResult
+                                                            });
+                                                            return
+                                                        })
+                                                    })
+                                                })
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+        })
+    })
+})
