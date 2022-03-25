@@ -6,20 +6,29 @@ import {open} from 'sqlite';
 const require = createRequire(import.meta.url);
 
 const express = require("express"),
-    crypto = require("crypto");
+    crypto = require("crypto"),
+    https = require('https'),
+    fs = require('fs');
 
 const serverListeningPort = 4000,
-    allowedClientUrl = 'http://localhost:3000',
+    allowedClientUrl = 'https://fuportal.difres.ru',
     dbOptions = {
         filename: 'source.db',
         driver: sqlite3.Database
     };
 
+//настройка https
+const httpsOptions = {
+    cert: fs.readFileSync('./fullchain.pem'),
+    key: fs.readFileSync('./privkey.pem')
+};
+
 const app = express(),
     jsonParser = express.json();
 
-app.listen(serverListeningPort, () => {
-})
+https.createServer(httpsOptions, app).listen(serverListeningPort, () => {
+    console.log("Сервер успешно запущен и доступен для запросов")
+});
 
 app.use(jsonParser, (req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", allowedClientUrl);

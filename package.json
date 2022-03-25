@@ -3,6 +3,7 @@
   "dependencies": {
     "crypto": "^1.0.1",
     "express": "^4.17.3",
+    "https": "^1.0.0",
     "nodemon": "^2.0.15",
     "sqlite": "^4.0.25",
     "sqlite3": "^5.0.2"
